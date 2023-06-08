@@ -62,15 +62,3 @@ export const REMOVE_BOOK = gql`
   }
 `;
 
-export const SEARCH_GOOGLE_BOOKS = gql`
-  mutation searchGoogleBooks($input: String!) {
-    searchGoogleBooks(input: $input) {
-      bookId
-      authors
-      description
-      title
-      image
-      link
-    }
-  }
-`;

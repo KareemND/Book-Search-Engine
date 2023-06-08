@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useMutation } from '@apollo/client';
-import { SAVE_BOOK, SEARCH_GOOGLE_BOOKS } from '../utils/mutations';
+import { SAVE_BOOK } from '../utils/mutations';
+import { searchGoogleBooks } from '../utils/API';
 import { Container, Col, Form, Button, Card, Row } from 'react-bootstrap';
 import Auth from '../utils/auth';
 
@@ -8,7 +9,6 @@ const SearchBooks = () => {
   const [searchedBooks, setSearchedBooks] = useState([]);
   const [searchInput, setSearchInput] = useState('');
   const [saveBook] = useMutation(SAVE_BOOK);
-  const [searchBooks] = useMutation(SEARCH_GOOGLE_BOOKS);
 
   useEffect(() => {
     if (!searchInput) {
@@ -17,9 +17,18 @@ const SearchBooks = () => {
 
     async function fetchBooks() {
       try {
-        const { data } = await searchBooks({ variables: { searchTerm: searchInput } });
+        const response = await searchGoogleBooks(searchInput);
+        const data = await response.json();
 
-        setSearchedBooks(data.searchGoogleBooks);
+        setSearchedBooks(data.items.map((book) => ({
+          bookId: book.id,
+          authors: book.volumeInfo.authors || ['No author to display'],
+          title: book.volumeInfo.title,
+          description: book.volumeInfo.description,
+          image: book.volumeInfo.imageLinks?.thumbnail || '',
+          link: book.volumeInfo.previewLink,
+        })));
+
         setSearchInput('');
       } catch (err) {
         console.error(err);
@@ -27,11 +36,10 @@ const SearchBooks = () => {
     }
 
     fetchBooks();
-  }, [searchInput, searchBooks]);
+  }, [searchInput]);
 
-  const handleFormSubmit = async (event) => {
+  const handleFormSubmit = (event) => {
     event.preventDefault();
-
     setSearchInput(event.target.value);
   };
 
@@ -86,8 +94,8 @@ const SearchBooks = () => {
         <Row>
           {searchedBooks.map((book) => {
             return (
-              <Col md="4">
-                <Card key={book.bookId} border='dark'>
+              <Col md='4' key={book.bookId}>
+                <Card border='dark'>
                   {book.image ? (
                     <Card.Img src={book.image} alt={`The cover for ${book.title}`} variant='top' />
                   ) : null}
@@ -98,7 +106,8 @@ const SearchBooks = () => {
                     {Auth.loggedIn() && (
                       <Button
                         className='btn-block btn-info'
-                        onClick={() => handleSaveBook(book.bookId)}>
+                        onClick={() => handleSaveBook(book.bookId)}
+                      >
                         Save this Book!
                       </Button>
                     )}
